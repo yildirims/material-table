@@ -35,28 +35,41 @@ class MaterialTable extends React.Component {
       orderBy: defaultSortColumnIndex,
       orderDirection: defaultSortDirection,
       filterSelectionChecked: false,
-      ...this.getDataAndColumns(calculatedProps)
+      ...this.getData(calculatedProps),
+      ...this.getColumns(calculatedProps)
     };
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    const dataAndColumns = this.getDataAndColumns(this.getProps(nextProps));
-    this.setState(dataAndColumns);
+    if (nextProps.data !== this.props.data) {
+      const data = this.getData(this.getProps(nextProps));
+      const columns = this.getColumns(this.getProps(nextProps));
+      this.setState(() => ({ ...columns, ...data }));
+    }
   }
 
-  getDataAndColumns(props) {
-    const data = props.data.map((row, index) => {
-      row.tableData = { id: index };
+  getData(props) {
+    let selectedCount = 0;
+    const data = props.data.map((row, index) => {      
+      row.tableData = { ...row.tableData, id: index };
+      if(row.tableData.checked) {
+        selectedCount++;
+      }
       return row;
     });
 
+    const renderData = this.getRenderData(data, props);
+
+    return { data, renderData, selectedCount };
+  }
+
+  getColumns(props) {
     const columns = props.columns.map((columnDef, index) => {
-      columnDef.tableData = { id: index };
+      columnDef.tableData = { id: index, filterValue: columnDef.defaultFilter };
       return columnDef;
     });
 
-    const renderData = this.getRenderData(data, props);
-    return { data, columns, renderData };
+    return { columns };
   }
 
   getProps(props) {
@@ -288,32 +301,35 @@ class MaterialTable extends React.Component {
         }
         <div style={{ overflowX: 'auto' }}>
           <Table>
-            <props.components.Header
-              localization={{ ...MaterialTable.defaultProps.localization.header, ...this.props.localization.header }}
-              columns={this.state.columns}
-              hasSelection={props.options.selection}
-              selectedCount={this.state.selectedCount}
-              dataCount={this.state.data.length}
-              showActionsColumn={props.actions && props.actions.filter(a => !a.isFreeAction && !this.props.options.selection).length > 0}
-              orderBy={this.state.orderBy}
-              orderDirection={this.state.orderDirection}
-              onAllSelected={(checked) => {
-                const data = this.state.renderData.map(row => {
-                  row.tableData.checked = checked;
-                  return row;
-                });
-                const selectedCount = checked ? data.length : 0;
-                this.setState({ renderData: data, selectedCount }, () => this.onSelectionChange());
-              }}
-              onOrderChange={(orderBy, orderDirection) => {
-                this.setState({ orderBy, orderDirection, currentPage: 0 }, () => {
-                  this.setData();
-                  this.onOrderChange(orderBy, orderDirection);
-                });
-              }}
-              actionsHeaderIndex={props.options.actionsColumnIndex}
-              sorting={props.options.sorting}
-            />
+            {props.options.header &&
+              <props.components.Header
+                localization={{ ...MaterialTable.defaultProps.localization.header, ...this.props.localization.header }}
+                columns={this.state.columns}
+                hasSelection={props.options.selection}
+                selectedCount={this.state.selectedCount}
+                dataCount={this.state.data.length}
+                hasDetailPanel={!!props.detailPanel}
+                showActionsColumn={props.actions && props.actions.filter(a => !a.isFreeAction && !this.props.options.selection).length > 0}
+                orderBy={this.state.orderBy}
+                orderDirection={this.state.orderDirection}
+                onAllSelected={(checked) => {
+                  const data = this.state.renderData.map(row => {
+                    row.tableData.checked = checked;
+                    return row;
+                  });
+                  const selectedCount = checked ? data.length : 0;
+                  this.setState({ renderData: data, selectedCount }, () => this.onSelectionChange());
+                }}
+                onOrderChange={(orderBy, orderDirection) => {
+                  this.setState({ orderBy, orderDirection, currentPage: 0 }, () => {
+                    this.setData();
+                    this.onOrderChange(orderBy, orderDirection);
+                  });
+                }}
+                actionsHeaderIndex={props.options.actionsColumnIndex}
+                sorting={props.options.sorting}
+              />
+            }
             <props.components.Body
               actions={props.actions}
               components={props.components}
@@ -322,6 +338,7 @@ class MaterialTable extends React.Component {
               currentPage={this.state.currentPage}
               pageSize={this.state.pageSize}
               columns={this.state.columns}
+              detailPanel={props.detailPanel}
               options={props.options}
               getFieldValue={this.getFieldValue}
               onFilterChanged={(columnId, value) => {
@@ -346,6 +363,17 @@ class MaterialTable extends React.Component {
                   selectedCount: state.selectedCount + (checked ? 1 : -1)
                 }), () => this.onSelectionChange());
                 this.setData();
+              }}
+              onToggleDetailPanel={(rowData, render) => {
+                const data = this.state.data;
+                const targetRow = data.find(a => a.tableData.id === rowData.tableData.id);
+                if(targetRow.tableData.showDetailPanel === render) {
+                  targetRow.tableData.showDetailPanel = undefined;
+                }
+                else {
+                  targetRow.tableData.showDetailPanel = render;
+                }                
+                this.setData(data);
               }}
               localization={{ ...MaterialTable.defaultProps.localization.body, ...this.props.localization.body }}
             />
@@ -376,6 +404,7 @@ MaterialTable.defaultProps = {
   icons: {
     /* eslint-disable react/display-name */
     Check: (props) => <Icon {...props}>check</Icon>,
+    DetailPanel: (props) => <Icon {...props}>chevron_right</Icon>,    
     Export: (props) => <Icon {...props}>save_alt</Icon>,
     Filter: (props) => <Icon {...props}>filter_list</Icon>,
     FirstPage: (props) => <Icon {...props}>first_page</Icon>,
@@ -395,6 +424,7 @@ MaterialTable.defaultProps = {
     exportButton: false,
     exportDelimiter: ',',
     filtering: false,
+    header: true,
     paging: true,
     pageSize: 5,
     pageSizeOptions: [5, 10, 20],
@@ -427,6 +457,7 @@ MaterialTable.propTypes = {
   })])),
   columns: PropTypes.arrayOf(PropTypes.shape({
     cellStyle: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
+    defaultFilter: PropTypes.any,
     hidden: PropTypes.bool,
     field: PropTypes.string,
     filtering: PropTypes.bool,
@@ -457,8 +488,18 @@ MaterialTable.propTypes = {
     Toolbar: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
   }),
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
+  detailPanel: PropTypes.oneOfType([
+    PropTypes.func, 
+    PropTypes.arrayOf(PropTypes.shape({
+      icon: PropTypes.oneOfType([PropTypes.element, PropTypes.func, PropTypes.string]),
+      openIcon: PropTypes.oneOfType([PropTypes.element, PropTypes.func, PropTypes.string]),
+      tooltip: PropTypes.string,
+      render: PropTypes.func.isRequired
+    }))
+  ]),
   icons: PropTypes.shape({
     Check: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
+    DetailPanel: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     Export: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     Filter: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     FirstPage: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
@@ -477,14 +518,16 @@ MaterialTable.propTypes = {
     exportButton: PropTypes.bool,
     exportDelimiter: PropTypes.string,
     filtering: PropTypes.bool,
+    header: PropTypes.bool,
     paging: PropTypes.bool,
     pageSize: PropTypes.number,
     pageSizeOptions: PropTypes.arrayOf(PropTypes.number),
+    rowStyle: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
     showEmptyDataSourceMessage: PropTypes.bool,
     search: PropTypes.bool,
     selection: PropTypes.bool,
     sorting: PropTypes.bool,
-    toolbar: PropTypes.bool
+    toolbar: PropTypes.bool    
   }),
   localization: PropTypes.shape({
     pagination: PropTypes.object,

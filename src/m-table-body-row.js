@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Checkbox, TableCell, TableRow } from '@material-ui/core';
+import { Checkbox, TableCell, TableRow, IconButton, Icon, Tooltip } from '@material-ui/core';
 import PropTypes from 'prop-types';
 import * as React from 'react';
 /* eslint-enable no-unused-vars */
@@ -11,9 +11,9 @@ export default class MTableBodyRow extends React.Component {
       .map((columnDef) => {
         const value = this.props.getFieldValue(this.props.data, columnDef);
         return (
-          <this.props.components.Cell 
+          <this.props.components.Cell
             icons={this.props.icons}
-            columnDef={columnDef} 
+            columnDef={columnDef}
             value={value}
             key={columnDef.tableData.id}
             rowData={this.props.data} />
@@ -33,7 +33,7 @@ export default class MTableBodyRow extends React.Component {
   }
   renderSelectionColumn() {
     return (
-      <TableCell padding="checkbox" key="key-selection-column">
+      <TableCell padding="none" key="key-selection-column">
         <Checkbox
           checked={this.props.data.tableData.checked === true}
           value={`${this.props.data.tableData.id}`}
@@ -42,6 +42,79 @@ export default class MTableBodyRow extends React.Component {
       </TableCell>
     );
   }
+
+  renderDetailPanelColumn() {
+    const rotateIconStyle = isOpen => ({
+      transform: isOpen ? 'rotate(90deg)' : 'none'
+    });
+    const CustomIcon = ({ icon, style }) => typeof icon === "string" ? <Icon style={style}>{icon}</Icon> : React.createElement(icon, {style});
+
+    if (typeof this.props.detailPanel == 'function') {
+      return (
+        <TableCell padding="none" key="key-detail-panel-column" style={{ width: 48, textAlign: 'center' }}>
+          <IconButton
+            style={{transition: 'all ease 200ms', ...rotateIconStyle(this.props.data.tableData.showDetailPanel)}}
+            onClick={() => this.props.onToggleDetailPanel(this.props.data, this.props.detailPanel)}
+          >
+            <this.props.icons.DetailPanel />
+          </IconButton>
+        </TableCell>
+      );
+    }
+    else {
+      return (
+        <TableCell padding="none" key="key-detail-panel-column" style={{ width: 48 * this.props.detailPanel.length, textAlign: 'center' }}>
+          {this.props.detailPanel.map((panel, index) => {
+            const isOpen = this.props.data.tableData.showDetailPanel === panel.render;
+            let iconButton = <this.props.icons.DetailPanel />;
+            let animation = true;
+            if (isOpen) {
+              if (panel.openIcon) {
+                iconButton = <CustomIcon icon={panel.openIcon} />;
+                animation = false;
+              }
+              else if (panel.icon) {
+                iconButton = <CustomIcon icon={panel.icon} />;
+              }
+            }
+            else if (panel.icon) {
+              iconButton = <CustomIcon icon={panel.icon} />;
+              animation = false;
+            }
+
+            iconButton = (
+              <IconButton
+                key={"key-detail-panel-" + index}
+                style={{transition: 'all ease 200ms', ...rotateIconStyle(animation && isOpen)}}
+                onClick={() => this.props.onToggleDetailPanel(this.props.data, panel.render)}
+              >
+              {iconButton}
+            </IconButton>);
+
+            if (panel.tooltip) {
+              iconButton = <Tooltip key={"key-detail-panel-" + index} title={panel.tooltip}>{iconButton}</Tooltip>;
+            }
+
+            return iconButton;
+          })}
+        </TableCell>
+      );
+    }
+  }
+
+  getStyle() {
+    if(!this.props.options.rowStyle) {
+      return {};
+    }
+
+    let style = this.props.options.rowStyle;
+    if(typeof this.props.options.rowStyle === "function") {
+      style = this.props.options.rowStyle(this.props.data);
+    } 
+
+    return style;
+  }
+
   render() {
     const columns = this.renderColumns();
     if (this.props.options.selection) {
@@ -59,10 +132,25 @@ export default class MTableBodyRow extends React.Component {
         columns.splice(this.props.options.actionsColumnIndex + endPos, 0, this.renderActions());
       }
     }
+
+    // Lastly we add detail panel icon
+    if (this.props.detailPanel) {
+      columns.splice(0, 0, this.renderDetailPanelColumn());
+    }
+
     return (
-      <TableRow selected={this.props.index % 2 === 0}>
-        {columns}
-      </TableRow>
+      <>
+        <TableRow selected={this.props.index % 2 === 0} style={this.getStyle()}>
+          {columns}
+        </TableRow>
+        {this.props.data.tableData.showDetailPanel &&
+          <TableRow selected={this.props.index % 2 === 0}>
+            <TableCell colSpan={columns.length} padding="none">
+              {this.props.data.tableData.showDetailPanel(this.props.data)}
+            </TableCell>
+          </TableRow>
+        }
+      </>
     );
   }
 }
@@ -79,8 +167,10 @@ MTableBodyRow.propTypes = {
   icons: PropTypes.any.isRequired,
   index: PropTypes.number.isRequired,
   data: PropTypes.object.isRequired,
+  detailPanel: PropTypes.oneOfType([PropTypes.func, PropTypes.arrayOf(PropTypes.object)]),
   options: PropTypes.object.isRequired,
   onRowSelected: PropTypes.func,
   getFieldValue: PropTypes.func.isRequired,
   columns: PropTypes.array,
+  onToggleDetailPanel: PropTypes.func.isRequired
 };

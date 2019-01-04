@@ -4,9 +4,15 @@ import { IconProps } from '@material-ui/core/Icon';
 export interface MaterialTableProps {
   actions?: (Action | ((rowData:any) => Action)) [];
   columns: Column[];
-  components?: Components;
-  icons?: Icons,
+  components?: Components;  
   data: object;
+  detailPanel?: ((rowData: any) => React.ReactNode) | {
+    icon?: string | React.ReactElement<any>,
+    openIcon?: string | React.ReactElement<any>,
+    tooltip?: string;
+    render: (rowData: any) => string | React.ReactNode;
+  }[];
+  icons?: Icons,
   title: string;
   options?: Options;
   localization?: Localization;
@@ -26,6 +32,7 @@ export interface Action {
 
 export interface Column {
   cellStyle?: any | ((data: any) => any);
+  defaultFilter?: any;
   hidden?: boolean;
   field?: string;
   filtering?: boolean;
@@ -54,6 +61,7 @@ export interface Components {
 
 export interface Icons {
   Check: React.ReactElement<any>;
+  DetailPanel: React.ReactElement<any>;
   Export: React.ReactElement<any>;
   Filter: React.ReactElement<any>;
   FirstPage: React.ReactElement<any>;
@@ -72,9 +80,11 @@ export interface Options {
   exportButton?: boolean;
   exportDelimiter?: string;
   filtering?: boolean;
+  header?: boolean;
   paging?: boolean;
   pageSize?: number;
   pageSizeOptions?: number[];
+  rowStyle?: any | ((data: any) => any);
   showEmptyDataSourceMessage?:boolean;
   search?: boolean;
   selection?: boolean;

@@ -7,20 +7,21 @@ import MaterialTable from '../src/material-table'
 
 ## Props
 
-| Property            | Type   | Default           | Description                                                       |
-|:--------------------|:-------|:------------------|:------------------------------------------------------------------|
-| actions             | Array  |                   | Action list. An icon button will be rendered for each actions     |
-| columns             | Array  |                   | Column definitions                                                |
-| components          | object |                   | Component customization                                           |
-| data                | Array  |                   | Data to be rendered                                               |
-| icons               | object |                   | Icons customization                                               |
-| localization        | object |                   | All text for localization                                         |
-| onChangePage        | func   |                   | To handle page changes (page)                                     |
-| onChangeRowsPerPage | func   |                   | To handle rows per page changes (pageSize)                        |
-| onOrderChange       | func   |                   | To handle order changes (orderedColumnId, orderDirection)         |
-| onSelectionChange   | func   |                   | To handle selection changes                                       |
-| options             | object |                   | All options of table                                              |
-| title               | string | 'Table Title'     | Table Title (only render if toolbar option is true                |
+| Property            | Type                            | Default           | Description                                                       |
+|:--------------------|:--------------------------------|:------------------|:------------------------------------------------------------------|
+| actions             | Array                           |                   | Action list. An icon button will be rendered for each actions     |
+| columns             | Array                           |                   | Column definitions                                                |
+| components          | object                          |                   | Component customization                                           |
+| data                | Array                           |                   | Data to be rendered                                               |
+| detailPanel         | func or array of detailPanel    |                   | Component(s) to be rendered on detail panel                       |
+| icons               | object                          |                   | Icons customization                                               |
+| localization        | object                          |                   | All text for localization                                         |
+| onChangePage        | func                            |                   | To handle page changes (page)                                     |
+| onChangeRowsPerPage | func                            |                   | To handle rows per page changes (pageSize)                        |
+| onOrderChange       | func                            |                   | To handle order changes (orderedColumnId, orderDirection)         |
+| onSelectionChange   | func                            |                   | To handle selection changes                                       |
+| options             | object                          |                   | All options of table                                              |
+| title               | string                          | 'Table Title'     | Table Title (only render if toolbar option is true                |
 
 
 ### actions
@@ -39,6 +40,7 @@ import MaterialTable from '../src/material-table'
 | Field           | Type            | Default   | Description                                                                                                   |
 |:----------------|:----------------|:----------|:--------------------------------------------------------------------------------------------------------------|
 | cellStyle       | object or func  |           | Cell cellStyle                                                                                                |
+| defaultFilter   | any             |           | Default Filter value for filtering column                                                                     |
 | hidden          | boolean         | false     | Flag for hide column                                                                                          |
 | field           | string          |           | Field name of data row                                                                                        |
 | filtering       | boolean         | true      | Flag to activate or disable filtering feature of column                                                       |
@@ -70,11 +72,23 @@ import MaterialTable from '../src/material-table'
 | Row           | React.Element | MTableBodyRow   | Row component                                                                             |
 | Toolbar       | React.Element | MTableToolbar   | Toolbar component                                                                         |
 
+### detailPanel
+
+| Field         | Type                    | Default   | Description                                                                                 |
+|:--------------|:------------------------|:----------|:--------------------------------------------------------------------------------------------|
+| icon          | string or ReactElement  |           | Icon of button from material icons or custom component                                      |
+| openIcon      | string or ReactElement  |           | Icon of button when detailPanel is open                                                     |
+| tooltip       | string                  |           | Tooltip for button                                                                          |
+| iconProps     | object                  |           | Props for icon as IconProps from https://material-ui.com/api/icon/                          |
+| isFreeAction  | boolean                 | false     | Independent actions that will not on row' actions section                                   |
+| render        | func                    |           | render result of detail panel according rowData                                             |
+
 ### icons
 
 | Field           | Type          | Default                         | Description           |
 |:----------------|:--------------|:--------------------------------|:----------------------|
 | Check           | React.Element | material icons 'check'          | Check icon            |
+| DetailPanel     | React.Element | material icons 'chevron_right'  | DetailPanel icon      |
 | Export          | React.Element | material icons 'save_alt'       | Export icon           |
 | Filter          | React.Element | material icons 'filter_list'    | Filter icon           |
 | FirstPage       | React.Element | material icons 'first_page'     | FirstPage icon        |
@@ -133,18 +147,20 @@ Localization settings could be used to change/translate default texts of datatab
 
 Options property could be given to component as `options` property. You can change behaviour of grid.
 
-| Field                      | Type      | Default       | Description                                                                       |
-|:---------------------------|:----------|:--------------|:----------------------------------------------------------------------------------|
-| columnsButton              | boolean   | false         | Flag for columns button that controls which column could be rendered              |
-| emptyRowsWhenPaging        | boolean   | true          | Flag for rendering rows to complete page size                                     |
-| exportButton               | boolean   | false         | Flag for export button that render export buttons                                 |
-| exportDelimiter            | string    | ,             | Delimiter to use in exported CSV file                                             |
-| filtering                  | boolean   | false         | Flag for filtering row                                                            |
-| paging                     | boolean   | true          | Flag for paging feature                                                           |
-| pageSize                   | numeric   | 5             | Number of rows that would be rendered on every page                               |
-| pageSizeOptions            | array     | [5, 10, 20]   | Page size options that could be selected by user                                  |
-| showEmptyDataSourceMessage | boolean   | true          | Flag for showing message if there is no data in table                             |
-| search                     | boolean   | true          | Flag for search feature                                                           |
-| selection                  | boolean   | false         | Flag for selection feature                                                        |
-| sorting                    | boolean   | true          | Flag to activate or disable sorting feature of table                              |
-| toolbar                    | boolean   | true          | Flag for toolbar                                                                  |
+| Field                      | Type             | Default       | Description                                                                       |
+|:---------------------------|:-----------------|:--------------|:----------------------------------------------------------------------------------|
+| columnsButton              | boolean          | false         | Flag for columns button that controls which column could be rendered              |
+| emptyRowsWhenPaging        | boolean          | true          | Flag for rendering rows to complete page size                                     |
+| exportButton               | boolean          | false         | Flag for export button that render export buttons                                 |
+| exportDelimiter            | string           | ,             | Delimiter to use in exported CSV file                                             |
+| filtering                  | boolean          | false         | Flag for filtering row                                                            |
+| header                     | boolean          | true          | Flag for header visibility                                                        |
+| paging                     | boolean          | true          | Flag for paging feature                                                           |
+| pageSize                   | numeric          | 5             | Number of rows that would be rendered on every page                               |
+| pageSizeOptions            | array            | [5, 10, 20]   | Page size options that could be selected by user                                  |
+| rowStyle                   | object or func   |               | Css style to be applied rows                                                      |
+| showEmptyDataSourceMessage | boolean          | true          | Flag for showing message if there is no data in table                             |
+| search                     | boolean          | true          | Flag for search feature                                                           |
+| selection                  | boolean          | false         | Flag for selection feature                                                        |
+| sorting                    | boolean          | true          | Flag to activate or disable sorting feature of table                              |
+| toolbar                    | boolean          | true          | Flag for toolbar                                                                  |
